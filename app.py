@@ -2,15 +2,10 @@ import streamlit as st
 import requests
 import json
 import plotly.express as px
-import plotly.graph_objects as go
-import plotly.figure_factory as ff
-import plotly.io as pio
-import plotly
 import pandas as pd
 
-
 # Backend API URL (replace with your actual endpoint)
-API_URL = "https://sandeep.abhi.rip//get_results"
+API_URL = "http://0.0.0.0:6000//get_results"
 
 # Index options from the image
 index_options  = [
@@ -34,15 +29,19 @@ risk_limit = st.slider("Select Risk Limit", min_value=0.0, max_value=1.0, step=0
 # Multi-select for indexes
 selected_indexes = st.multiselect("Select Indexes", index_options)
 
+# Use number_input to select an integer time value instead of date_input
+selected_time = st.number_input("Select Time (in integer units)", min_value=1, value=1, step=1)
+
 # Submit button
 if st.button("Submit"):
     if not selected_indexes:
         st.warning("Please select at least one index.")
     else:
-        # Prepare form data
+        # Prepare form data with the integer time
         form_data = {
             "risk_limit": str(risk_limit),
-            "assets": json.dumps(selected_indexes)  # serialize list to JSON string
+            "assets": json.dumps(selected_indexes),  # serialize list to JSON string
+            "time": selected_time  # sending integer directly
         }
 
         try:
@@ -62,7 +61,7 @@ if st.button("Submit"):
                 col3.metric("CAGR", "N/A" if cagr == -1 else f"{cagr:.2%}")
                 col4.metric("Max Drawdown", "N/A" if max_dd == -1 else f"{max_dd:.2%}")
 
-                # Weights parsing: weights is a list of dicts like [{0: 1}]
+                # Parsing weights: weights is expected to be a list of dicts like [{0: 1}]
                 weights_raw = result["weights"]
                 weights_flat = {}
 
@@ -71,7 +70,7 @@ if st.button("Submit"):
                         if isinstance(item, dict):
                             for k, v in item.items():
                                 weights_flat[int(k)] = v
-                        elif isinstance(item, float) or isinstance(item, int):
+                        elif isinstance(item, (float, int)):
                             weights_flat[i] = item
                 else:
                     st.error("Unexpected weights format.")
@@ -85,12 +84,12 @@ if st.button("Submit"):
                 st.markdown("### 🧮 Portfolio Weights")
                 st.table(weights_table)
 
-                # Optional: Pie chart
+                # Pie chart for visualizing portfolio allocation
                 df = pd.DataFrame(weights_table)
                 fig = px.pie(df, names="Index", values="Weight", title="Portfolio Allocation")
                 st.plotly_chart(fig)
 
             else:
-                st.error(f"❌ Error: {response.status_code} - {response.text}")
+                st.error(f"❌ Error: {response.status_code} - some error occurred.")
         except Exception as e:
             st.error(f"🚫 Request failed: {e}")
