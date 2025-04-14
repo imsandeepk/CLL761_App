@@ -10,7 +10,7 @@ import pandas as pd
 
 
 # Backend API URL (replace with your actual endpoint)
-API_URL = "http://0.0.0.0:5000/get_results"
+API_URL = "https://sandeep.abhi.rip//get_results"
 
 # Index options from the image
 index_options  = [
